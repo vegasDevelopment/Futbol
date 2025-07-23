@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>2D Futbol Oyunu Mobil Kontrollü</title>
+  <title>Futbol Oyunu</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -47,15 +47,20 @@
       touch-action: none;
     }
 
-    /* Mobil butonlar */
+    /* Butonlar üstte ve büyük */
     #mobileControls {
       display: none;
       position: fixed;
-      bottom: 20px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      width: 320px;
+      width: 400px;
       user-select: none;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
     }
 
     #joystick {
@@ -64,8 +69,6 @@
       background: rgba(255, 255, 255, 0.1);
       border-radius: 50%;
       position: relative;
-      display: inline-block;
-      margin-right: 40px;
       touch-action: none;
     }
 
@@ -78,21 +81,22 @@
       top: 40px;
       left: 40px;
       touch-action: none;
+      transition: transform 0.1s;
     }
 
     #buttons {
-      display: inline-block;
-      vertical-align: top;
+      display: flex;
+      gap: 20px;
+      align-items: center;
     }
 
     .btn {
-      width: 60px;
-      height: 60px;
+      width: 70px;
+      height: 70px;
       background: rgba(255, 255, 255, 0.2);
       border-radius: 50%;
-      margin: 10px;
-      line-height: 60px;
-      font-size: 24px;
+      line-height: 70px;
+      font-size: 28px;
       font-weight: bold;
       color: white;
       cursor: pointer;
@@ -100,6 +104,8 @@
       touch-action: manipulation;
       display: inline-block;
       transition: background 0.2s;
+      text-align: center;
+      user-select: none;
     }
     .btn:active {
       background: rgba(255, 255, 255, 0.5);
@@ -108,6 +114,15 @@
     #scoreBoard {
       font-size: 24px;
       margin-top: 10px;
+      position: fixed;
+      top: 180px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.3);
+      padding: 10px 20px;
+      border-radius: 10px;
+      user-select: none;
+      z-index: 100;
     }
   </style>
 </head>
@@ -127,6 +142,7 @@
   <div id="buttons">
     <div class="btn" id="btn-pass" title="Pas">P</div>
     <div class="btn" id="btn-shoot" title="Şut">S</div>
+    <div class="btn" id="btn-switch" title="Oyuncu Değiştir">D</div>
   </div>
 </div>
 
@@ -152,12 +168,13 @@ const mobileControls = document.getElementById("mobileControls");
 const stick = document.getElementById("stick");
 const btnPass = document.getElementById("btn-pass");
 const btnShoot = document.getElementById("btn-shoot");
+const btnSwitch = document.getElementById("btn-switch");
 const scoreBoard = document.getElementById("scoreBoard");
 
 let playerTeam = null;
 let opponentTeam = null;
 let players = [];
-let ball = { x: 500, y: 300, radius: 7, color: "white", dx:0, dy:0 };
+let ball = { x: 500, y: 300, radius: 7, color: "white", dx: 0, dy: 0 };
 let score = [0, 0]; // [player, opponent]
 let keys = {};
 let controlledPlayerIndex = 0; // Hangi oyuncu kontrol ediliyor?
@@ -200,7 +217,8 @@ function generatePlayers(team, isLeft) {
     y: 300,
     radius: 12,
     color: team.secondColor,
-    teamName: team.name
+    teamName: team.name,
+    isBot: !isLeft // Rakip takım bot
   });
 
   // Defans
@@ -210,7 +228,8 @@ function generatePlayers(team, isLeft) {
       y: 100 + i * 100,
       radius: 10,
       color: team.color,
-      teamName: team.name
+      teamName: team.name,
+      isBot: !isLeft
     });
   }
 
@@ -221,7 +240,8 @@ function generatePlayers(team, isLeft) {
       y: 75 + i * 125,
       radius: 10,
       color: team.color,
-      teamName: team.name
+      teamName: team.name,
+      isBot: !isLeft
     });
   }
 
@@ -232,7 +252,8 @@ function generatePlayers(team, isLeft) {
       y: 200 + i * 200,
       radius: 10,
       color: team.color,
-      teamName: team.name
+      teamName: team.name,
+      isBot: !isLeft
     });
   }
 
@@ -250,10 +271,9 @@ function initMatch() {
   ball.dx = 0;
   ball.dy = 0;
 
-  // Başlangıçta kontrollü oyuncu topa en yakın oyuncu olsun
   controlledPlayerIndex = findClosestPlayerToBall();
 
-  score = [0,0];
+  score = [0, 0];
   updateScore();
 }
 
@@ -315,11 +335,11 @@ function updateScore() {
 }
 
 // Oyuncu topa en yakın olanı bul
-function findClosestPlayerToBall() {
+function findClosestPlayerToBall(teamName = playerTeam.name) {
   let closestIndex = 0;
   let closestDist = Infinity;
   players.forEach((p, i) => {
-    if (p.teamName === playerTeam.name) {
+    if (p.teamName === teamName) {
       const dx = p.x - ball.x;
       const dy = p.y - ball.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -407,12 +427,12 @@ function resetAfterGoal() {
   ball.dx = 0;
   ball.dy = 0;
 
-  // Topa en yakın oyuncu kontrol edilir
+  // Topa en yakın oyuncular kontrol edilir
   controlledPlayerIndex = findClosestPlayerToBall();
   updateScore();
 }
 
-// Kontrolü başka oyuncuya geçirme (örnek: space ile)
+// Kontrolü başka oyuncuya geçirme
 function switchPlayer() {
   let start = controlledPlayerIndex;
   let found = false;
@@ -428,110 +448,80 @@ function switchPlayer() {
   if (!found) controlledPlayerIndex = start; // Değişiklik yok
 }
 
-// Pas verme (şimdilik topu ileri atar)
+// Pas verme (topu ileri doğru atar)
 function passBall() {
   let p = players[controlledPlayerIndex];
-  let directionX = 1;
-  if (p.x > canvas.width / 2) directionX = -1;
+  let dirX = 1;
+  if (p.x > canvas.width / 2) dirX = -1;
 
-  ball.dx = 8 * directionX;
+  ball.dx = dirX * 8;
   ball.dy = 0;
-
-  // Kontrolü topa en yakın oyuncuya ver
-  controlledPlayerIndex = findClosestPlayerToBall();
+  ball.x = p.x + dirX * (p.radius + ball.radius + 1);
+  ball.y = p.y;
 }
 
-// Şut çekme (topa güçlü vurma)
+// Şut çekme (topu güçlü ileri atar)
 function shootBall() {
   let p = players[controlledPlayerIndex];
-  let directionX = 1;
-  if (p.x > canvas.width / 2) directionX = -1;
+  let dirX = 1;
+  if (p.x > canvas.width / 2) dirX = -1;
 
-  ball.dx = 15 * directionX;
+  ball.dx = dirX * 15;
   ball.dy = 0;
-
-  controlledPlayerIndex = findClosestPlayerToBall();
+  ball.x = p.x + dirX * (p.radius + ball.radius + 1);
+  ball.y = p.y;
 }
 
-// Klavye kontrolleri
-window.addEventListener("keydown", (e) => {
-  keys[e.key.toLowerCase()] = true;
+// Bot takım basit yapay zekası
+function botBehavior() {
+  players.forEach((p, i) => {
+    if (!p.isBot) return; // Sadece botlar
 
-  if (e.key === " ") {
-    e.preventDefault();
-    switchPlayer();
-  }
-  if (e.key.toLowerCase() === "p") passBall();
-  if (e.key.toLowerCase() === "s") shootBall();
-});
+    const distToBall = Math.hypot(ball.x - p.x, ball.y - p.y);
 
-window.addEventListener("keyup", (e) => {
-  keys[e.key.toLowerCase()] = false;
-});
+    // Basit: topa yakınsa topa doğru hareket et
+    if (distToBall > 20) {
+      const dx = (ball.x - p.x) / distToBall;
+      const dy = (ball.y - p.y) / distToBall;
+      p.x += dx * 2;
+      p.y += dy * 2;
+    } else {
+      // Topa yakınsa rastgele hareket veya topu uzaklaştır
+      if (Math.random() < 0.05) {
+        // Topu ileri doğru uzaklaştır (sağ kaleye doğru)
+        ball.dx = 10;
+        ball.dy = 0;
+      }
+    }
 
-// Mobil joystick hareketi için
-let joystickActive = false;
-let joystickCenter = { x: 0, y: 0 };
-let joystickPos = { x: 0, y: 0 };
+    // Saha sınırları kontrolü
+    if (p.x - p.radius < canvas.width / 2) p.x = canvas.width / 2 + p.radius; // Bot takım sahayı geçmesin
+    if (p.x + p.radius > canvas.width) p.x = canvas.width - p.radius;
+    if (p.y - p.radius < 0) p.y = p.radius;
+    if (p.y + p.radius > canvas.height) p.y = canvas.height - p.radius;
+  });
+}
 
-stick.addEventListener("pointerdown", (e) => {
-  joystickActive = true;
-  joystickCenter.x = e.clientX;
-  joystickCenter.y = e.clientY;
-  stick.style.transition = "none";
-});
-window.addEventListener("pointerup", () => {
-  joystickActive = false;
-  stick.style.transition = "all 0.3s ease";
-  stick.style.transform = `translate(0,0)`;
-  joystickPos.x = 0;
-  joystickPos.y = 0;
-});
-window.addEventListener("pointermove", (e) => {
-  if (!joystickActive) return;
-  let dx = e.clientX - joystickCenter.x;
-  let dy = e.clientY - joystickCenter.y;
-
-  let maxDist = 50;
-  let dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist > maxDist) {
-    dx = (dx / dist) * maxDist;
-    dy = (dy / dist) * maxDist;
-  }
-  joystickPos.x = dx / maxDist;
-  joystickPos.y = dy / maxDist;
-
-  stick.style.transform = `translate(${dx}px, ${dy}px)`;
-});
-
-// Mobil butonlar
-btnPass.addEventListener("click", passBall);
-btnShoot.addEventListener("click", shootBall);
-
+// Oyun döngüsü
 function gameLoop() {
-  // Hareket
-  let dx = 0, dy = 0;
-
   // Klavye hareketi
-  if (keys["w"] || keys["arrowup"]) dy -= 1;
-  if (keys["s"] || keys["arrowdown"]) dy += 1;
-  if (keys["a"] || keys["arrowleft"]) dx -= 1;
-  if (keys["d"] || keys["arrowright"]) dx += 1;
+  let dx = 0;
+  let dy = 0;
+  if (keys["ArrowUp"] || keys["w"] || keys["W"]) dy -= 1;
+  if (keys["ArrowDown"] || keys["s"] || keys["S"]) dy += 1;
+  if (keys["ArrowLeft"] || keys["a"] || keys["A"]) dx -= 1;
+  if (keys["ArrowRight"] || keys["d"] || keys["D"]) dx += 1;
 
-  // Mobil joystick hareketi
-  dx += joystickPos.x;
-  dy += joystickPos.y;
-
+  // Normalize hareket
   if (dx !== 0 || dy !== 0) {
-    // Normalize
-    const length = Math.sqrt(dx * dx + dy * dy);
-    dx /= length;
-    dy /= length;
+    let len = Math.sqrt(dx * dx + dy * dy);
+    dx /= len;
+    dy /= len;
     movePlayer(dx, dy);
   }
 
+  botBehavior();
   updateBall();
-
   drawScene();
 
   requestAnimationFrame(gameLoop);
@@ -546,7 +536,115 @@ function drawScene() {
   updateScore();
 }
 
+// Klavye olayları
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+
+  // D tuşu ile oyuncu değiştir
+  if (e.key === "d" || e.key === "D") {
+    switchPlayer();
+  }
+
+  // P tuşu pas
+  if (e.key === "p" || e.key === "P") {
+    passBall();
+  }
+
+  // S tuşu şut
+  if (e.key === "s" || e.key === "S") {
+    shootBall();
+  }
+});
+
+window.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
+
+// Mobil joystick kontrolü
+let joystickActive = false;
+let startX = 0, startY = 0;
+let moveX = 0, moveY = 0;
+
+stick.addEventListener("touchstart", e => {
+  joystickActive = true;
+  const touch = e.touches[0];
+  startX = touch.clientX;
+  startY = touch.clientY;
+});
+
+stick.addEventListener("touchmove", e => {
+  if (!joystickActive) return;
+  const touch = e.touches[0];
+  moveX = touch.clientX - startX;
+  moveY = touch.clientY - startY;
+
+  // Maks 50px hareket ettir
+  const maxDist = 50;
+  let dist = Math.sqrt(moveX * moveX + moveY * moveY);
+  if (dist > maxDist) {
+    moveX = (moveX / dist) * maxDist;
+    moveY = (moveY / dist) * maxDist;
+  }
+
+  stick.style.transform = `translate(${moveX}px, ${moveY}px)`;
+});
+
+stick.addEventListener("touchend", e => {
+  joystickActive = false;
+  moveX = 0;
+  moveY = 0;
+  stick.style.transform = `translate(0, 0)`;
+});
+
+// Mobil joystick hareketini oyun döngüsüne aktar
+function getJoystickDirection() {
+  if (!joystickActive) return { dx: 0, dy: 0 };
+
+  let dx = moveX / 50;
+  let dy = moveY / 50;
+  if (dx * dx + dy * dy > 1) {
+    let len = Math.sqrt(dx * dx + dy * dy);
+    dx /= len;
+    dy /= len;
+  }
+  return { dx, dy };
+}
+
+// Mobil butonlar pas, şut, oyuncu değiştir
+btnPass.addEventListener("touchstart", e => { passBall(); e.preventDefault(); });
+btnShoot.addEventListener("touchstart", e => { shootBall(); e.preventDefault(); });
+btnSwitch.addEventListener("touchstart", e => { switchPlayer(); e.preventDefault(); });
+
+// Oyun döngüsü güncelleme (joystick)
+function gameLoop() {
+  // Klavye hareketi
+  let dx = 0;
+  let dy = 0;
+  if (keys["ArrowUp"] || keys["w"] || keys["W"]) dy -= 1;
+  if (keys["ArrowDown"] || keys["s"] || keys["S"]) dy += 1;
+  if (keys["ArrowLeft"] || keys["a"] || keys["A"]) dx -= 1;
+  if (keys["ArrowRight"] || keys["d"] || keys["D"]) dx += 1;
+
+  // Mobil joystick hareketi
+  const joystickDir = getJoystickDirection();
+  dx += joystickDir.dx;
+  dy += joystickDir.dy;
+
+  // Normalize hareket
+  if (dx !== 0 || dy !== 0) {
+    let len = Math.sqrt(dx * dx + dy * dy);
+    dx /= len;
+    dy /= len;
+    movePlayer(dx, dy);
+  }
+
+  botBehavior();
+  updateBall();
+  drawScene();
+
+  requestAnimationFrame(gameLoop);
+}
 </script>
 
 </body>
-</html>
+  </html>
