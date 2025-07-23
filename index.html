@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Futbol Oyunu</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0a3d0a;
+      overflow: hidden;
+    }
+
+    #menu {
+      padding: 50px;
+      text-align: center;
+      color: white;
+    }
+
+    .team {
+      padding: 10px 20px;
+      margin: 10px auto;
+      background: #222;
+      color: white;
+      width: 250px;
+      border: 2px solid white;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: 0.2s;
+    }
+
+    .team:hover {
+      background: #444;
+    }
+
+    canvas {
+      display: none;
+      margin: auto;
+      background: #006400;
+      border: 2px solid white;
+    }
+  </style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>Takımını Seç</h1>
+</div>
+
+<canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+<script>
+const teams = [
+  { name: "Galatasaray", color: "#ff0000", secondColor: "#ffcc00" },
+  { name: "Fenerbahçe", color: "#000080", secondColor: "#ffff00" },
+  { name: "Beşiktaş", color: "#000000", secondColor: "#ffffff" },
+  { name: "Trabzonspor", color: "#800000", secondColor: "#87cefa" },
+  { name: "Başakşehir", color: "#1e3f66", secondColor: "#ff6600" },
+  { name: "Konyaspor", color: "#006400", secondColor: "#ffffff" },
+  { name: "Bursaspor", color: "#228B22", secondColor: "#ffffff" },
+  { name: "Adana Demirspor", color: "#4169e1", secondColor: "#ffffff" }
+];
+
+const menuDiv = document.getElementById("menu");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let playerTeam = null;
+let opponentTeam = null;
+let players = [];
+let ball = { x: 500, y: 300, radius: 7, color: "white" };
+
+// Menü oluştur
+teams.forEach((team, index) => {
+  const div = document.createElement("div");
+  div.className = "team";
+  div.textContent = `${index + 1}. ${team.name}`;
+  div.onclick = () => startGame(team);
+  menuDiv.appendChild(div);
+});
+
+function startGame(selectedTeam) {
+  playerTeam = selectedTeam;
+
+  // Rakip rastgele ama aynı takım olmasın
+  do {
+    opponentTeam = teams[Math.floor(Math.random() * teams.length)];
+  } while (opponentTeam.name === playerTeam.name);
+
+  menuDiv.style.display = "none";
+  canvas.style.display = "block";
+  initMatch();
+}
+
+// Sahadaki 11 oyuncuyu oluştur
+function generatePlayers(team, isLeft) {
+  const direction = isLeft ? 1 : -1;
+  const baseX = isLeft ? 100 : 900;
+  const teamPlayers = [];
+
+  // Kaleci
+  teamPlayers.push({
+    x: baseX - 50 * direction,
+    y: 300,
+    radius: 12,
+    color: team.secondColor
+  });
+
+  // Defans
+  for (let i = 0; i < 4; i++) {
+    teamPlayers.push({
+      x: baseX,
+      y: 100 + i * 100,
+      radius: 10,
+      color: team.color
+    });
+  }
+
+  // Orta Saha
+  for (let i = 0; i < 4; i++) {
+    teamPlayers.push({
+      x: baseX + 80 * direction,
+      y: 75 + i * 125,
+      radius: 10,
+      color: team.color
+    });
+  }
+
+  // Forvet
+  for (let i = 0; i < 2; i++) {
+    teamPlayers.push({
+      x: baseX + 160 * direction,
+      y: 200 + i * 200,
+      radius: 10,
+      color: team.color
+    });
+  }
+
+  return teamPlayers;
+}
+
+// Maç sahasını hazırla
+function initMatch() {
+  players = [];
+  players.push(...generatePlayers(playerTeam, true));
+  players.push(...generatePlayers(opponentTeam, false));
+
+  drawScene();
+}
+
+// Saha çizimi
+function drawField() {
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Orta çizgi
+  ctx.strokeStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2, 0);
+  ctx.lineTo(canvas.width / 2, canvas.height);
+  ctx.stroke();
+
+  // Orta daire
+  ctx.beginPath();
+  ctx.arc(canvas.width / 2, canvas.height / 2, 60, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Kaleler
+  ctx.fillRect(0, canvas.height / 2 - 50, 10, 100);
+  ctx.fillRect(canvas.width - 10, canvas.height / 2 - 50, 10, 100);
+}
+
+// Oyuncular ve topu çiz
+function drawPlayers() {
+  players.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.stroke();
+  });
+}
+
+function drawBall() {
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = ball.color;
+  ctx.fill();
+}
+
+function drawTeamLabels() {
+  ctx.font = "20px Arial";
+  ctx.fillStyle = playerTeam.color;
+  ctx.fillText(`${playerTeam.name}`, 50, 30);
+  ctx.fillStyle = opponentTeam.color;
+  ctx.fillText(`${opponentTeam.name}`, canvas.width - 200, 30);
+}
+
+function drawScene() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawField();
+  drawPlayers();
+  drawBall();
+  drawTeamLabels();
+  requestAnimationFrame(drawScene);
+}
+
+</script>
+</body>
+</html>
