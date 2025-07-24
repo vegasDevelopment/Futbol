@@ -1,289 +1,262 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>⚽ Futbol Oyunu</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, html {
-      width: 100%;
-      height: 100%;
-      background: #0a3d0a;
-      font-family: Arial, sans-serif;
-      color: #fff;
-      overflow: hidden;
-    }
-
-    #menu {
-      padding: 20px;
-      text-align: center;
-    }
-
-    .team {
-      background: #222;
-      padding: 10px 18px;
-      margin: 8px auto;
-      width: 220px;
-      cursor: pointer;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 16px;
-      border: 2px solid #fff;
-      transition: background 0.3s;
-    }
-
-    .team:hover {
-      background: #444;
-    }
-
-    canvas {
-      display: none;
-      background: #007000;
-      border: 3px solid #fff;
-      margin: auto;
-      max-width: 100vw;
-      height: auto;
-      touch-action: none;
-    }
-
-    #mobileControls {
-      display: none;
-      position: fixed;
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 360px;
-      height: 90px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 15px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 999;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .btn {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      width: 70px;
-      height: 70px;
-      text-align: center;
-      line-height: 70px;
-      font-weight: bold;
-      font-size: 28px;
-      color: white;
-      user-select: none;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .btn:active {
-      background: rgba(255, 255, 255, 0.6);
-    }
-
-    #joystick {
-      position: relative;
-      width: 110px;
-      height: 110px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-    }
-
-    #stick {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      top: 30px;
-      left: 30px;
-      transition: 0.1s;
-    }
-
-    #scoreBoard, #timeBoard {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.5);
-      padding: 8px 20px;
-      border-radius: 10px;
-      font-weight: bold;
-      font-size: 20px;
-      user-select: none;
-    }
-
-    #scoreBoard {
-      top: 60px;
-    }
-
-    #timeBoard {
-      top: 100px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>⚽ Futbol oyunu</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body,html{width:100%;height:100%;background:#0a3d0a;font-family:Arial;color:#fff;overflow:hidden;}
+  #menu{padding:20px;text-align:center;}
+  .team{background:#222;padding:10px 18px;margin:8px auto;width:220px;cursor:pointer;border-radius:8px;
+        font-weight:bold;font-size:16px;border:2px solid #fff;transition:background .3s;}
+  .team:hover{background:#444;}
+  canvas{display:none;background:#007000;border:3px solid #fff;margin:auto;max-width:100vw;height:auto;}
+  #mobileControls{display:none;position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+    width:360px;height:90px;background:rgba(0,0,0,0.3);border-radius:15px;display:flex;
+    justify-content:space-around;align-items:center;user-select:none;z-index:999;}
+  .btn{background:rgba(255,255,255,0.2);border-radius:50%;width:60px;height:60px;
+    text-align:center;line-height:60px;font-weight:bold;font-size:24px;color:white;
+    transition:background .2s;cursor:pointer;}
+  .btn:active{background:rgba(255,255,255,0.6);}
+  #joystick{position:relative;width:90px;height:90px;background:rgba(255,255,255,0.1);border-radius:50%;}
+  #stick{position:absolute;width:40px;height:40px;background:rgba(255,255,255,0.3);
+    border-radius:50%;top:25px;left:25px;transition:.1s;}
+  #scoreBoard,#timeBoard,#pauseBtn{position:fixed;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:8px;font-weight:bold;font-size:18px;}
+  #scoreBoard{top:20px;} #timeBoard{top:50px;}
+  #pauseBtn{top:80px;cursor:pointer;}
+</style>
 </head>
 <body>
 
-  <div id="menu">
-    <h1>Takımını Seç</h1>
-  </div>
+<div id="menu"><h1>Takımını Seç</h1></div>
+<canvas id="gameCanvas" width="1000" height="600"></canvas>
+<div id="mobileControls">
+  <div id="joystick"><div id="stick"></div></div>
+  <div class="btn" id="btn-pass">P</div>
+  <div class="btn" id="btn-shoot">S</div>
+  <div class="btn" id="btn-switch">D</div>
+</div>
+<div id="scoreBoard">0 - 0</div>
+<div id="timeBoard">00:00</div>
+<div id="pauseBtn">⏸️</div>
 
-  <canvas id="gameCanvas" width="1000" height="600"></canvas>
+<script>
+// 🛠 Ayarlar
+const TEAMS=[{name:"Galatasaray",c:"#f00",c2:"#fc0"},{name:"Beşiktaş",c:"#000",c2:"#fff"}];
+const FPS=60, MATCH_MIN=5; // test amaçlı kısa maç
+let paused=false;
 
-  <div id="mobileControls">
-    <div id="joystick"><div id="stick"></div></div>
-    <div class="btn" id="btn-pass">P</div>
-    <div class="btn" id="btn-shoot">S</div>
-    <div class="btn" id="btn-switch">D</div>
-  </div>
+// DOM
+const menu=document.getElementById("menu"),
+      canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d"),
+      controls=document.getElementById("mobileControls"),
+      stick=document.getElementById("stick"),
+      passBtn=document.getElementById("btn-pass"),
+      shootBtn=document.getElementById("btn-shoot"),
+      switchBtn=document.getElementById("btn-switch"),
+      scoreBoard=document.getElementById("scoreBoard"),
+      timeBoard=document.getElementById("timeBoard"),
+      pauseBtn=document.getElementById("pauseBtn");
 
-  <div id="scoreBoard"></div>
-  <div id="timeBoard"></div>
+// Değişkenler
+let playerTeam, oppTeam, players=[], ball, ctrlIdx=0, score=[0,0], time=0;
 
-  <script>
-    const teams = [
-      { name: "Galatasaray", color: "#FF0000", secondColor: "#FFCC00" },
-      { name: "Fenerbahçe", color: "#000080", secondColor: "#FFFF00" },
-      { name: "Beşiktaş", color: "#000000", secondColor: "#FFFFFF" },
-      { name: "Trabzonspor", color: "#800000", secondColor: "#87CEFA" },
-      { name: "Başakşehir", color: "#1E3F66", secondColor: "#FF6600" },
-      { name: "Konyaspor", color: "#006400", secondColor: "#FFFFFF" },
-      { name: "Bursaspor", color: "#228B22", secondColor: "#FFFFFF" },
-      { name: "Adana Demirspor", color: "#4169E1", secondColor: "#FFFFFF" }
-    ];
+// Menü
+TEAMS.forEach((t,i)=>{
+  const d=document.createElement("div");
+  d.className="team"; d.textContent=t.name;
+  d.onclick=()=>start(t);
+  menu.appendChild(d);
+});
 
-    const menu = document.getElementById("menu");
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const mobileControls = document.getElementById("mobileControls");
-    const btnPass = document.getElementById("btn-pass");
-    const btnShoot = document.getElementById("btn-shoot");
-    const btnSwitch = document.getElementById("btn-switch");
+function start(t){
+  playerTeam=t;
+  oppTeam=TEAMS.filter(x=>x!=t)[0];
+  menu.style.display="none";
+  canvas.style.display="block";
+  controls.style.display="flex";
+  pauseBtn.style.display="block";
+  init();gameLoop();
+}
 
-    let playerTeam, opponentTeam;
-    let ball = { x: 500, y: 300, radius: 7 };
-    let players = [];
-    let controlledIndex = 0;
-    let score = [0, 0];
-    let time = 0;
-    let gameStarted = false;
+function init(){
+  players=[];score=[0,0];time=0;ball={x:500,y:300,dx:0,dy:0};
+  players.push(...gen(teamToObj(playerTeam),true));
+  players.push(...gen(teamToObj(oppTeam),false));
+  ctrlIdx=findClosestIdx();
+}
+function teamToObj(t){return {name:t.name,color:t.c,second:t.c2};}
 
-    teams.forEach((team, i) => {
-      const div = document.createElement("div");
-      div.className = "team";
-      div.textContent = `${i + 1}. ${team.name}`;
-      div.onclick = () => startGame(team);
-      menu.appendChild(div);
-    });
-
-    function startGame(team) {
-      playerTeam = team;
-      do {
-        opponentTeam = teams[Math.floor(Math.random() * teams.length)];
-      } while (opponentTeam.name === playerTeam.name);
-
-      menu.style.display = "none";
-      canvas.style.display = "block";
-      mobileControls.style.display = "flex";
-
-      players = generatePlayers(playerTeam, true).concat(generatePlayers(opponentTeam, false));
-      gameStarted = true;
-      requestAnimationFrame(loop);
-    }
-
-    function generatePlayers(team, isLeft) {
-      const baseX = isLeft ? 150 : 850;
-      const dir = isLeft ? 1 : -1;
-      const result = [];
-
-      // Kaleci
-      result.push({ x: baseX - 60 * dir, y: 300, r: 14, c: team.secondColor, name: "GK", team: team.name });
-
-      for (let i = 0; i < 4; i++) {
-        result.push({ x: baseX, y: 100 + i * 100, r: 10, c: team.color, name: `DF${i+1}`, team: team.name });
-      }
-      for (let i = 0; i < 4; i++) {
-        result.push({ x: baseX + 50 * dir, y: 80 + i * 100, r: 10, c: team.color, name: `MF${i+1}`, team: team.name });
-      }
-      for (let i = 0; i < 2; i++) {
-        result.push({ x: baseX + 100 * dir, y: 200 + i * 200, r: 10, c: team.color, name: `FW${i+1}`, team: team.name });
-      }
-      return result;
-    }
-
-    function drawField() {
-      ctx.fillStyle = "#007000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
-
-      ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, 20);
-      ctx.lineTo(canvas.width / 2, canvas.height - 20);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(canvas.width / 2, canvas.height / 2, 60, 0, 2 * Math.PI);
-      ctx.stroke();
-
-      // Kaleler
-      ctx.fillStyle = "white";
-      ctx.fillRect(20, canvas.height / 2 - 50, 10, 100);
-      ctx.fillRect(canvas.width - 30, canvas.height / 2 - 50, 10, 100);
-    }
-
-    function drawPlayers() {
-      players.forEach((p, i) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.c;
-        ctx.fill();
-
-        if (i === controlledIndex) {
-          ctx.strokeStyle = "yellow";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        }
-
-        ctx.fillStyle = "white";
-        ctx.font = "12px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(p.name, p.x, p.y - p.r - 6);
+function gen(team,left){
+  const res=[];const dir=left?1:-1,baseX=left?150:850;
+  res.push({x:baseX-60*dir,y:300,r:14,c:team.second,name:"GK",team:team.name,isBot:!left,st:100});
+  ["DF","MF","FW"].forEach((rl,i)=>{
+    const cnt=i==0?4: i==1?4:2;
+    for(let j=0;j<cnt;j++){
+      res.push({
+        x:baseX + (i*40)*dir,
+        y:150 + j*((300)/(cnt-1||1)),
+        r:12,c:team.color,
+        name:rl+j+1,team:team.name,isBot:!left,st:100,role:rl
       });
     }
+  });
+  return res;
+}
 
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = "white";
-      ctx.fill();
+// Çizimler
+function draw(){
+  ctx.clearRect(0,0,1000,600);
+  // saha
+  ctx.fillStyle="#070"; ctx.fillRect(0,0,1000,600);
+  ctx.strokeStyle="#fff";ctx.lineWidth=3;
+  ctx.strokeRect(20,20,960,560);
+  ctx.beginPath();ctx.moveTo(500,20);ctx.lineTo(500,580);ctx.stroke();
+  ctx.beginPath();ctx.arc(500,300,60,0,2*Math.PI);ctx.stroke();
+  ctx.fillStyle="#fff";ctx.fillRect(20,250,10,100);ctx.fillRect(970,250,10,100);
+  // oyuncular
+  players.forEach((p,i)=>{
+    ctx.beginPath();ctx.fillStyle=p.c;ctx.arc(p.x,p.y,p.r,0,2*Math.PI);ctx.fill();
+    if(i===ctrlIdx){ctx.strokeStyle="yellow";ctx.lineWidth=3;ctx.stroke();}
+    // isim
+    ctx.fillStyle="#fff";ctx.font="10px Arial";ctx.textAlign="center";
+    ctx.fillText(p.name,p.x,p.y- p.r -5);
+    // stamina
+    ctx.fillStyle="#222";ctx.fillRect(p.x-15,p.y+p.r+4,30,4);
+    ctx.fillStyle=p.st>40?"lime":p.st>15?"orange":"red";
+    ctx.fillRect(p.x-15,p.y+p.r+4,30*(p.st/100),4);
+  });
+  // top
+  ctx.beginPath();ctx.fillStyle="white";ctx.arc(ball.x,ball.y,7,0,2*Math.PI);ctx.fill();
+}
+
+// Güncellemeler
+function update(){
+  if(paused) return;
+  time+=1/FPS; updateHUD();
+
+  // hareket
+  const p=players[ctrlIdx];
+  let dx= keys["a"]||keys["arrowleft"]?-1: keys["d"]||keys["arrowright"]?1:0;
+  let dy= keys["w"]||keys["arrowup"]?-1: keys["s"]||keys["arrowdown"]?1:0;
+  dx+=joyX/30; dy+=joyY/30;
+  if(dx||dy){
+    const L=Math.hypot(dx,dy);
+    p.x+=dx/L*(2+p.st/50);p.y+=dy/L*(2+p.st/50);
+    p.st=Math.max(0,p.st-0.1);
+    if(dist(p,ball)<p.r+7){
+      ball.dx=dx/L*6; ball.dy=dy/L*6;
     }
-
-    function loop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawField();
-      drawPlayers();
-      drawBall();
-
-      if (gameStarted) {
-        requestAnimationFrame(loop);
-      }
+  } else { p.st=Math.min(100,p.st+0.05); }
+  
+  // botlar
+  players.forEach((b,i)=>{
+    if(!b.isBot) return;
+    const dX=ball.x-b.x,dY=ball.y-b.y,dd=dist(b,ball);
+    if(b.name==="GK"){
+      if(Math.abs(dY)>5) b.y+=Math.sign(dY)*2;
+    } else if(dd>20){
+      b.x+=dX/dd*1.5; b.y+=dY/dd*1.5;
+    } else if(Math.random()<0.01){
+      ball.dx=dX/dd*7; ball.dy=dY/dd*7;
     }
+  });
 
-    // Kontroller
-    window.addEventListener("keydown", e => {
-      if (e.key === "d") {
-        controlledIndex = (controlledIndex + 1) % players.length;
-      }
-    });
+  // top
+  ball.x+=ball.dx; ball.y+=ball.dy;
+  ball.dx*=0.96; ball.dy*=0.96;
 
-    btnSwitch.addEventListener("click", () => {
-      controlledIndex = (controlledIndex + 1) % players.length;
-    });
-  </script>
+  // gol + taç/korner + kart
+  checkGoal(); checkBounds(); checkCards();
+}
+
+// HUD
+function updateHUD(){
+  scoreBoard.textContent= `${score[0]} - ${score[1]}`;
+  const m=Math.floor(time/60),s=Math.floor(time%60);
+  timeBoard.textContent=`${pad(m)}:${pad(s)}`;
+}
+function pad(n){return n<10?"0"+n:n;}
+
+// kontrol indeks
+function findClosestIdx(){
+  let mi=0,md=1e9;
+  players.forEach((p,i)=>{
+    if(p.team!==playerTeam.name) return;
+    const d=dist(p,ball);
+    if(d<md){md=d;mi=i;}
+  });
+  return mi;
+}
+
+// yardımcılar
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+
+// goal
+function checkGoal(){
+  if(ball.x<20 && ball.y>250 && ball.y<350){ score[1]++; resetAfterGoal(); }
+  if(ball.x>980 && ball.y>250 && ball.y<350){ score[0]++; resetAfterGoal(); }
+}
+function resetAfterGoal(){
+  ball.x=500; ball.y=300; ball.dx=ball.dy=0;
+  players.forEach(p=>p.st=100);
+  alert("GOL!");
+  ctrlIdx=findClosestIdx();
+}
+
+// sınırlar
+function checkBounds(){
+  if(ball.x<20||ball.x>980||ball.y<20||ball.y>580){
+    if(ball.x<20||ball.x>980) alert("KorI Gelişme!"); // korner
+    ball.x=500; ball.y=300; ball.dx=ball.dy=0;
+    ctrlIdx=findClosestIdx();
+  }
+}
+
+// kart
+function checkCards(){
+  players.forEach(p=>{
+    if(Math.random()<0.0002){
+      const color=Math.random()<.5?"sarı":"kırmızı";
+      alert(p.name+" "+color+" kart gördü!");
+      if(color==="kırmızı"){ p.st=0; }
+    }
+  });
+}
+
+// ana döngü
+function gameLoop(){
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// kontroller
+let keys={},joyX=0,joyY=0;
+window.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+window.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+switchBtn.addEventListener("click",()=>ctrlIdx=(ctrlIdx+1)%players.length);
+passBtn.addEventListener("click",()=>{ball.dx=0; ball.dy=0;});
+shootBtn.addEventListener("click",()=>{ball.dx=(Math.random()-0.5)*10; ball.dy=(Math.random()-0.5)*10});
+pauseBtn.addEventListener("click",()=>paused=!paused,
+                             {passive:true});
+
+stick.addEventListener("touchstart",e=>e.preventDefault());
+stick.addEventListener("touchend",e=>{
+  joyX=joyY=0;
+  stick.style.transform="translate(0,0)";
+});
+stick.addEventListener("touchmove",e=>{
+  const t=e.touches[0],r=stick.parentNode.getBoundingClientRect();
+  joyX=t.clientX-(r.left+r.width/2);
+  joyY=t.clientY-(r.top+r.height/2);
+  const m=dist({x:joyX,y:joyY},{x:0,y:0});
+  if(m>40){joyX=joyX/m*40;joyY=joyY/m*40;}
+  stick.style.transform=`translate(${joyX}px,${joyY}px)`;
+});
+
+</script>
 </body>
 </html>
