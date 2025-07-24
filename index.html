@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>⚽ Futbol Oyunu</title>
+<title>2D Futbol – Çalışan Versiyon</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body,html{width:100%;height:100%;background:#0a3d0a;font-family:Arial;color:#fff;overflow:hidden;}
@@ -29,6 +29,7 @@
 <body>
 
 <div id="menu"><h1>Takımını Seç</h1></div>
+
 <canvas id="gameCanvas" width="1000" height="600"></canvas>
 
 <div id="controls" style="display:none;">
@@ -45,72 +46,72 @@
 </div>
 
 <script>
-const SUP_TAKIM = [
-  {name:"Galatasaray",c:"#FF0000",c2:"#FFCC00"},
-  {name:"Fenerbahçe",c:"#000080",c2:"#FFFF00"},
-  {name:"Beşiktaş",c:"#000000",c2:"#FFFFFF"},
-  {name:"Trabzonspor",c:"#800000",c2:"#87CEFA"},
-  {name:"Başakşehir",c:"#1E3F66",c2:"#FF6600"},
-  {name:"Konyaspor",c:"#006400",c2:"#FFFFFF"},
-  {name:"Bursaspor",c:"#228B22",c2:"#FFFFFF"},
-  {name:"Adana Demirspor",c:"#4169E1",c2:"#FFFFFF"}
-];
+const SUP_TAKIM = ["Galatasaray","Fenerbahçe","Beşiktaş","Trabzonspor","Başakşehir","Konyaspor","Bursaspor","Adana Demirspor"];
+const TEAM_COLORS = {
+  "Galatasaray": ["#FF0000", "#FFCC00"], "Fenerbahçe": ["#000080","#FFFF00"],
+  "Beşiktaş": ["#000000","#FFFFFF"], "Trabzonspor": ["#800000","#87CEFA"],
+  "Başakşehir": ["#1E3F66","#FF6600"], "Konyaspor": ["#006400","#FFFFFF"],
+  "Bursaspor": ["#228B22","#FFFFFF"], "Adana Demirspor": ["#4169E1","#FFFFFF"]
+};
+
 const FPS=60, MATCH_SEC=5*60;
-let playerTeam,opTeam,players=[],ball,ctrlIdx,score=[0,0],time=0,paused=false;
-const menu=document.getElementById("menu"),canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d");
-const controls=document.getElementById("controls"),scoreBoard=document.getElementById("scoreBoard");
-const timeBoard=document.getElementById("timeBoard"),pauseBtn=document.getElementById("pauseBtn");
-const mob=document.getElementById("mobileControls"),stick=document.getElementById("stick");
-const passBtn=document.getElementById("btn-pass"),shootBtn=document.getElementById("btn-shoot");
-const switchBtn=document.getElementById("btn-switch");
+let playerTeam, opTeam, players=[], ball, ctrlIdx, score=[0,0], time=0, paused=false;
+const menu=document.getElementById("menu"),
+      canvas=document.getElementById("gameCanvas"), ctx=canvas.getContext("2d"),
+      controls=document.getElementById("controls"), scoreBoard=document.getElementById("scoreBoard"),
+      timeBoard=document.getElementById("timeBoard"), pauseBtn=document.getElementById("pauseBtn"),
+      mob=document.getElementById("mobileControls"), stick=document.getElementById("stick"),
+      passBtn=document.getElementById("btn-pass"), shootBtn=document.getElementById("btn-shoot"),
+      switchBtn=document.getElementById("btn-switch");
 
 SUP_TAKIM.forEach(t=>{
   const d=document.createElement("div");
-  d.className="team";d.textContent=t.name;
-  d.onclick=()=>start(t);
-  menu.appendChild(d);
+  d.className="team"; d.textContent=t;
+  d.onclick=()=>start(t); menu.appendChild(d);
 });
 
 function start(t){
   playerTeam=t;
-  opTeam=SUP_TAKIM.find(x=>x.name!==t.name);
+  opTeam=SUP_TAKIM.find(x=>x!==t);
   menu.style.display="none"; canvas.style.display="block";
   controls.style.display="flex"; mob.style.display="flex";
   init();gameLoop();
 }
 
 function init(){
-  players=[];score=[0,0];time=0;paused=false;
+  players=[]; score=[0,0]; time=0; paused=false;
   ball={x:500,y:300,dx:0,dy:0};
-  players.push(...gend(pTeam(playerTeam),true));
-  players.push(...gend(pTeam(opTeam),false));
-  ctrlIdx=closest();
+  players.push(...genTeam(playerTeam,true));
+  players.push(...genTeam(opTeam,false));
+  ctrlIdx=findClosest();
 }
 
-function pTeam(t){return {name:t.name,c:t.c,sec:t.c2};}
-function gend(team,left){
-  const arr=[],dir=left?1:-1,baseX=left?150:850;
-  arr.push({x:baseX-60*dir,y:300,r:14,c:team.sec,name:"GK",team:team.name,isBot:!left,st:100});
+function genTeam(name,left){
+  const [c,c2]=TEAM_COLORS[name];
+  const team={name,c,c2};
+  const arr=[]; const dir=left?1:-1, baseX=left?150:850;
+  arr.push({x:baseX-60*dir,y:300,r:14,c:team.c2,name:"GK",team:team.name,isBot:!left,st:100});
   ["DF","MF","FW"].forEach((rl,i)=>{
     const cnt=i==0?4:i==1?4:2;
     for(let j=0;j<cnt;j++){
-      arr.push({x:baseX+(i*40)*dir,y:150+j*(300/(cnt-1)),r:12,c:team.c,name:rl+(j+1),team:team.name,isBot:!left,st:100});
+      arr.push({x:baseX+(i*40)*dir, y:150+j*(300/(cnt-1)), r:12,
+        c:team.c, name:rl+(j+1), team:team.name, isBot:!left, st:100});
     }
   });
   return arr;
 }
 
-function closest(){
-  let mi=0,md=1e9;
-  players.forEach((p,i)=>{if(p.team===playerTeam.name){
+function findClosest(){
+  return players.reduce((best,p,i)=>{
+    if(p.team!==playerTeam) return best;
     const d=Math.hypot(p.x-ball.x,p.y-ball.y);
-    if(d<md){md=d;mi=i;}
-  }});
-  return mi;
+    return d<best.d?{i,d}:{i:best.i,d:best.d};
+  },{i:0,d:1e9}).i;
 }
 
 function gameLoop(){
-  update();draw(); if(!paused) requestAnimationFrame(gameLoop);
+  update(); draw();
+  if(!paused) requestAnimationFrame(gameLoop);
 }
 
 function update(){
@@ -118,114 +119,123 @@ function update(){
   scoreBoard.textContent=`${score[0]} – ${score[1]}`;
   timeBoard.textContent=`${pad(Math.floor(time/60))}:${pad(Math.floor(time%60))}`;
   if(time>=MATCH_SEC) paused=true;
-
   if(paused) return;
+
   const p=players[ctrlIdx];
   let dx=(keys["a"]?-1:keys["d"]?1:0)+(joyX/30);
   let dy=(keys["w"]?-1:keys["s"]?1:0)+(joyY/30);
   if(dx||dy){
     const L=Math.hypot(dx,dy);
-    p.x+=dx/L*(2+p.st/50);
-    p.y+=dy/L*(2+p.st/50);
+    p.x+=dx/L*(2+p.st/50); p.y+=dy/L*(2+p.st/50);
     p.st=Math.max(0,p.st-0.1);
     if(Math.hypot(ball.x-p.x,ball.y-p.y)<p.r+7){
-      ball.dx=dx/L*6;ball.dy=dy/L*6;
+      ball.dx=dx/L*6; ball.dy=dy/L*6;
     }
   } else p.st=Math.min(100,p.st+0.05);
-  players.forEach((b,i)=>{
-    if(!b.isBot)return;
-    const dx2=ball.x-b.x,dy2=ball.y-b.y,dd=Math.hypot(dx2,dy2);
+
+  players.forEach(b=>{
+    if(!b.isBot) return;
+    const dx2=ball.x-b.x, dy2=ball.y-b.y, dd=Math.hypot(dx2,dy2);
     if(b.name==="GK"){
       if(Math.abs(dy2)>5) b.y+=Math.sign(dy2)*2;
-    }else if(dd>20){
-      b.x+=dx2/dd*1.5;
-      b.y+=dy2/dd*1.5;
+    } else if(dd>20){
+      b.x+=dx2/dd*1.5; b.y+=dy2/dd*1.5;
     } else if(Math.random()<0.01){
-      ball.dx=dx2/dd*7;ball.dy=dy2/dd*7;
+      ball.dx=dx2/dd*7; ball.dy=dy2/dd*7;
     }
-    b.st=Math.max(0, b.st-0.02);
+    b.st=Math.max(0,b.st-0.02);
   });
 
-  ball.x+=ball.dx;ball.y+=ball.dy;ball.dx*=0.96;ball.dy*=0.96;
-  checkGoal();checkBounds();checkCards();
+  ball.x+=ball.dx; ball.y+=ball.dy;
+  ball.dx*=0.96; ball.dy*=0.96;
+
+  checkGoal(); checkBounds(); checkCards();
 }
 
 function draw(){
   ctx.clearRect(0,0,1000,600);
-  // tribün (üst)
   for(let i=0;i<50;i++){
-    ctx.fillStyle=i%2?"#eee":"#ccc";
-    const y=15, x=40+Math.random()*(920),r=5;
-    ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();
+    ctx.fillStyle = i%2?"#eee":"#ccc";
+    const x=40 + (i%10)*90, y=20, r=6;
+    ctx.beginPath(); ctx.arc(x,y,r,0,2*Math.PI); ctx.fill();
   }
-  // saha
-  ctx.fillStyle="#070";ctx.fillRect(0,0,1000,600);
-  ctx.strokeStyle="#fff";ctx.lineWidth=3;
+  ctx.fillStyle="#070"; ctx.fillRect(0,0,1000,600);
+  ctx.strokeStyle="#fff"; ctx.lineWidth=3;
   ctx.strokeRect(20,20,960,560);
-  ctx.beginPath();ctx.moveTo(500,20);ctx.lineTo(500,580);ctx.stroke();
-  ctx.beginPath();ctx.arc(500,300,60,0,2*Math.PI);ctx.stroke();
-  ctx.fillStyle="#fff";ctx.fillRect(20,250,10,100);
-  ctx.fillRect(970,250,10,100);
-  // oyuncular
+  ctx.beginPath(); ctx.moveTo(500,20); ctx.lineTo(500,580); ctx.stroke();
+  ctx.beginPath(); ctx.arc(500,300,60,0,2*Math.PI); ctx.stroke();
+  ctx.fillStyle="#fff"; ctx.fillRect(20,250,10,100); ctx.fillRect(970,250,10,100);
+
   players.forEach((p,i)=>{
-    ctx.beginPath();ctx.fillStyle=p.c;ctx.arc(p.x,p.y,p.r,0,2*Math.PI);ctx.fill();
-    if(i===ctrlIdx){ctx.strokeStyle="yellow";ctx.lineWidth=3;ctx.stroke();}
-    ctx.fillStyle="#fff";ctx.font="10px Arial";ctx.textAlign="center";
+    ctx.beginPath(); ctx.fillStyle=p.c; ctx.arc(p.x,p.y,p.r,0,2*Math.PI); ctx.fill();
+    if(i===ctrlIdx){ctx.strokeStyle="yellow"; ctx.lineWidth=3; ctx.stroke();}
+    ctx.fillStyle="#fff"; ctx.font="10px Arial"; ctx.textAlign="center";
     ctx.fillText(p.name,p.x,p.y-p.r-5);
-    ctx.fillStyle="#222";ctx.fillRect(p.x-15,p.y+p.r+4,30,4);
+    ctx.fillStyle="#222"; ctx.fillRect(p.x-15,p.y+p.r+4,30,4);
     ctx.fillStyle=p.st>40?"lime":p.st>15?"orange":"red";
     ctx.fillRect(p.x-15,p.y+p.r+4,30*(p.st/100),4);
   });
-  ctx.beginPath();ctx.fillStyle="white";ctx.arc(ball.x,ball.y,7,0,2*Math.PI);ctx.fill();
+
+  ctx.beginPath(); ctx.fillStyle="white"; ctx.arc(ball.x,ball.y,7,0,2*Math.PI); ctx.fill();
 }
 
-const keys={},joyX=0,joyY=0;
+const keys={}, joyState={x:0,y:0};
 window.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
 window.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
-switchBtn.onclick=()=>ctrlIdx=findClosest();
-passBtn.onclick=()=>{ball.dx=0;ball.dy=0;};
-shootBtn.onclick=()=>{ball.dx=(Math.random()-0.5)*10;ball.dy=(Math.random()-0.5)*10;};
-pauseBtn.onclick=()=>{paused=!paused; if(!paused) gameLoop();};
 
-let joyX=0,joyY=0,stickActive=false;
+let joyX=0, joyY=0, stickActive=false;
 stick.addEventListener("touchstart",e=>{stickActive=true;});
-stick.addEventListener("touchend",e=>{stickActive=false;joyX=joyY=0;stick.style.transform="translate(0,0)";});
+stick.addEventListener("touchend",e=>{stickActive=false; joyX=joyY=0; stick.style.transform="translate(0,0)";});
 stick.addEventListener("touchmove",e=>{
-  if(!stickActive)return;
+  if(!stickActive) return;
   const t=e.touches[0],r=stick.parentNode.getBoundingClientRect();
-  joyX=t.clientX-(r.left+r.width/2);joyY=t.clientY-(r.top+r.height/2);
+  joyX=t.clientX-(r.left+r.width/2); joyY=t.clientY-(r.top+r.height/2);
   const m=Math.hypot(joyX,joyY);
-  if(m>40){joyX=joyX/m*40;joyY=joyY/m*40;}
+  if(m>40){ joyX=joyX/m*40; joyY=joyY/m*40; }
   stick.style.transform=`translate(${joyX}px,${joyY}px)`;
 });
 
-function closest(){return players.findIndex(p=>p.team===playerTeam.name
-  &&Math.hypot(p.x-ball.x,p.y-ball.y)===Math.min(...players.filter(x=>x.team===playerTeam.name).map(x=>Math.hypot(x.x-ball.x,x.y-ball.y))));}
+switchBtn.onclick=()=>{ ctrlIdx=findClosest(); };
+passBtn.onclick=()=>{ ball.dx=0; ball.dy=0; };
+shootBtn.onclick=()=>{ ball.dx=(Math.random()-0.5)*10; ball.dy=(Math.random()-0.5)*10; };
+pauseBtn.onclick=()=>{ paused=!paused; if(!paused) gameLoop(); };
+
+function findClosest(){
+  let mi=0,md=1e9;
+  players.forEach((p,i)=>{
+    if(p.team===playerTeam){
+      const d=Math.hypot(p.x-ball.x,p.y-ball.y);
+      if(d<md){md=d;mi=i;}
+    }
+  });
+  return mi;
+}
 
 function checkGoal(){
-  if(ball.x<20&&ball.y>250&&ball.y<350){score[1]++;afterGoal();}
-  if(ball.x>980&&ball.y>250&&ball.y<350){score[0]++;afterGoal();}
+  if(ball.x<20 && ball.y>250 && ball.y<350){ score[1]++; afterGoal(); }
+  if(ball.x>980 && ball.y>250 && ball.y<350){ score[0]++; afterGoal(); }
 }
 function afterGoal(){
-  alert("GOL!");ball.x=500;ball.y=300;ball.dx=ball.dy=0;
-  players.forEach(p=>p.st=100);ctrlIdx=closest();
+  alert("GOL!"); ball.x=500; ball.y=300; ball.dx=ball.dy=0;
+  players.forEach(p=>p.st=100); ctrlIdx=findClosest();
 }
 function checkBounds(){
   if(ball.x<20||ball.x>980||ball.y<20||ball.y>580){
-    if(ball.x<20||ball.x>980)alert("Taç/Korner!");
-    ball.x=500;ball.y=300;ball.dx=ball.dy=0;ctrlIdx=closest();
+    if(ball.x<20||ball.x>980) alert("Taç/Korner!");
+    ball.x=500; ball.y=300; ball.dx=ball.dy=0; ctrlIdx=findClosest();
   }
 }
 function checkCards(){
   players.forEach(p=>{
     if(Math.random()<0.0002){
-      const col=Math.random()<.5?"SARI":"KIRMIZI";
-      alert(p.name+" "+col+" kart gördü!");
-      if(col==="KIRMIZI")p.st=0;
+      const c=Math.random()<0.5?"SARI":"KIRMIZI";
+      alert(`${p.name} ${c} kart gördü!`);
+      if(c==="KIRMIZI") p.st=0;
     }
   });
 }
 function pad(n){return n<10?"0"+n:n;}
 </script>
+
 </body>
 </html>
